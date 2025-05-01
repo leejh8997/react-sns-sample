@@ -47,7 +47,7 @@ function Login() {
     setMessage(null);
 
     setTimeout(() => { // 스피너를 보기 위해 일부러 1초 딜레이
-      fetch("http://localhost:3005/login", {
+      fetch("http://localhost:3005/member", {
         method: "POST",
         headers: {
           "Content-type": "application/json"
