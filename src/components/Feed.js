@@ -1,60 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Grid2,
-  AppBar,
-  Toolbar,
-  Typography,
-  Container,
-  Box,
-  Card,
-  CardMedia,
-  CardContent,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  IconButton,
-  DialogActions,
-  Button,
-  TextField,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
-  Avatar,
+  Grid2, AppBar, Toolbar, Typography, Container, Box, Card,
+  CardMedia, CardContent, Dialog, DialogTitle, DialogContent,
+  IconButton, DialogActions, Button, TextField, List, ListItem,
+  ListItemText, ListItemAvatar, Avatar, ImageList, ImageListItem,
+  ImageListItemBar,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
 
-const mockFeeds = [
-  {
-    id: 1,
-    title: '게시물 1',
-    description: '이것은 게시물 1의 설명입니다.',
-    image: 'https://images.unsplash.com/photo-1551963831-b3b1ca40c98e',
-  },
-  {
-    id: 2,
-    title: '게시물 2',
-    description: '이것은 게시물 2의 설명입니다.',
-    image: 'https://images.unsplash.com/photo-1521747116042-5a810fda9664',
-  },
-  // 추가 피드 데이터
-];
+// const mockFeeds = [
+//   {
+//     id: 1,
+//     title: '게시물 1',
+//     description: '이것은 게시물 1의 설명입니다.',
+//     image: 'https://images.unsplash.com/photo-1551963831-b3b1ca40c98e',
+//   },
+//   {
+//     id: 2,
+//     title: '게시물 2',
+//     description: '이것은 게시물 2의 설명입니다.',
+//     image: 'https://images.unsplash.com/photo-1521747116042-5a810fda9664',
+//   },
+//   // 추가 피드 데이터
+// ];
 
 function Feed() {
+  const [feeds, setFeeds] = useState([]); // 전체 피드
   const [open, setOpen] = useState(false);
   const [selectedFeed, setSelectedFeed] = useState(null);
+  const [selectedImages, setSelectedImages] = useState([]);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
 
   const handleClickOpen = (feed) => {
-    setSelectedFeed(feed);
-    setOpen(true);
-    setComments([
-      { id: 'user1', text: '멋진 사진이에요!' },
-      { id: 'user2', text: '이 장소에 가보고 싶네요!' },
-      { id: 'user3', text: '아름다운 풍경이네요!' },
-    ]); // 샘플 댓글 추가
-    setNewComment(''); // 댓글 입력 초기화
+    fetch('http://localhost:3005/feed/' + feed.id)
+      .then(res => res.json())
+      .then(data => {
+        if (data.message === 'success') {
+          setSelectedFeed(data.feed); // 제목/내용
+          setSelectedImages(data.images); // 이미지 배열
+          setOpen(true);
+          setComments([
+            { id: 'user1', text: '멋진 사진이에요!' },
+            { id: 'user2', text: '이 장소에 가보고 싶네요!' },
+            { id: 'user3', text: '아름다운 풍경이네요!' },
+          ]);
+          setNewComment('');
+        }
+      });
   };
 
   const handleClose = () => {
@@ -70,6 +64,16 @@ function Feed() {
     }
   };
 
+  useEffect(() => {
+    fetch('http://localhost:3005/feed')
+      .then(res => res.json())
+      .then(data => {
+        if (data.message === "success") {
+          setFeeds(data.list);
+        }
+      });
+  }, []);
+
   return (
     <Container maxWidth="md">
       <AppBar position="static">
@@ -80,13 +84,13 @@ function Feed() {
 
       <Box mt={4}>
         <Grid2 container spacing={3}>
-          {mockFeeds.map((feed) => (
+          {feeds.map(feed => (
             <Grid2 xs={12} sm={6} md={4} key={feed.id}>
               <Card>
                 <CardMedia
                   component="img"
                   height="200"
-                  image={feed.image}
+                  image={feed.imgPath || '/no-image.png'} // 썸네일
                   alt={feed.title}
                   onClick={() => handleClickOpen(feed)}
                   style={{ cursor: 'pointer' }}
@@ -102,7 +106,7 @@ function Feed() {
         </Grid2>
       </Box>
 
-      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="lg"> {/* 모달 크기 조정 */}
+      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="lg">
         <DialogTitle>
           {selectedFeed?.title}
           <IconButton
@@ -117,14 +121,46 @@ function Feed() {
         </DialogTitle>
         <DialogContent sx={{ display: 'flex' }}>
           <Box sx={{ flex: 1 }}>
-            <Typography variant="body1">{selectedFeed?.description}</Typography>
-            {selectedFeed?.image && (
-              <img
-                src={selectedFeed.image}
-                alt={selectedFeed.title}
-                style={{ width: '100%', marginTop: '10px' }}
-              />
-            )}
+            <Typography variant="body1">{selectedFeed?.content}</Typography>
+            <Box mt={2}>
+              <ImageList
+                sx={{
+                  width: '100%',
+                  transform: 'translateZ(0)',
+                }}
+                rowHeight={200}
+                gap={8}
+              >
+                {selectedImages.map((item, index) => (
+                  <ImageListItem key={index} cols={1} rows={1}>
+                    <img
+                      src={`${item.imgPath}?w=250&h=200&fit=crop&auto=format`}
+                      srcSet={`${item.imgPath}?w=250&h=200&fit=crop&auto=format&dpr=2 2x`}
+                      alt={`피드 이미지 ${index + 1}`}
+                      loading="lazy"
+                    />
+                    <ImageListItemBar
+                      title={`이미지 ${index + 1}`}
+                      position="top"
+                      sx={{
+                        background:
+                          'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, ' +
+                          'rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)',
+                      }}
+                      actionIcon={
+                        <IconButton
+                          sx={{ color: 'white' }}
+                          aria-label={`star 이미지 ${index + 1}`}
+                        >
+                          <StarBorderIcon />
+                        </IconButton>
+                      }
+                      actionPosition="left"
+                    />
+                  </ImageListItem>
+                ))}
+              </ImageList>
+            </Box>
           </Box>
 
           <Box sx={{ width: '300px', marginLeft: '20px' }}>
@@ -133,9 +169,9 @@ function Feed() {
               {comments.map((comment, index) => (
                 <ListItem key={index}>
                   <ListItemAvatar>
-                    <Avatar>{comment.id.charAt(0).toUpperCase()}</Avatar> {/* 아이디의 첫 글자를 아바타로 표시 */}
+                    <Avatar>{comment.id.charAt(0).toUpperCase()}</Avatar>
                   </ListItemAvatar>
-                  <ListItemText primary={comment.text} secondary={comment.id} /> {/* 아이디 표시 */}
+                  <ListItemText primary={comment.text} secondary={comment.id} />
                 </ListItem>
               ))}
             </List>
@@ -144,7 +180,7 @@ function Feed() {
               variant="outlined"
               fullWidth
               value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}           
+              onChange={(e) => setNewComment(e.target.value)}
             />
             <Button
               variant="contained"
@@ -157,9 +193,7 @@ function Feed() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose} color="primary">
-            닫기
-          </Button>
+          <Button onClick={handleClose} color="primary">닫기</Button>
         </DialogActions>
       </Dialog>
     </Container>

@@ -39,6 +39,12 @@ function Menu() {
           </ListItemIcon>
           <ListItemText primary="마이페이지" />
         </ListItem>
+        <ListItem button component={LinkAdapter} to="/recoil">
+          <ListItemIcon>
+            <Add />
+          </ListItemIcon>
+          <ListItemText primary="리코일" />
+        </ListItem>
       </List>
     </Drawer>
   );
